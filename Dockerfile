@@ -7,6 +7,7 @@
 # Run with:
 # docker run -p 5601:5601 -p 9200:9200 -p 5044:5044 -p 5000:5000 -it --name elk <repo-user>/elk
 
+#TODO: From Alpine
 FROM phusion/baseimage
 MAINTAINER Sebastien Pujadas http://pujadas.net
 ENV REFRESHED_AT 2016-08-20
@@ -21,8 +22,8 @@ ENV GOSU_VERSION 1.8
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN set -x \
- && apt-get update -qq \
- && apt-get install -qqy --no-install-recommends ca-certificates curl \
+ && apt-get update -q \
+ && apt-get install --no-install-recommends ca-certificates curl \
  && rm -rf /var/lib/apt/lists/* \
  && curl -L -o /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture)" \
  && curl -L -o /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture).asc" \
@@ -47,11 +48,15 @@ RUN echo deb http://packages.elasticsearch.org/elasticsearch/2.x/debian stable m
 
 RUN groupadd -r elasticsearch -g ${ES_GID} \
  && useradd -r -s /usr/sbin/nologin -M -c "Elasticsearch service user" -u ${ES_UID} -g elasticsearch elasticsearch \
- && apt-get update -qq \
- && apt-get install -qqy \
+ && apt-get update -q \
+ && apt-get install -y \
 		elasticsearch=${ES_VERSION} \
 		openjdk-8-jdk \
  && apt-get clean
+
+# # Install Marvel agent using default online instructions https://www.elastic.co/downloads/marvel
+RUN /usr/share/elasticsearch/bin/plugin install license && \
+   /usr/share/elasticsearch/bin/plugin install marvel-agent
 
 
 ### install Logstash
@@ -96,6 +101,10 @@ RUN mkdir ${KIBANA_HOME} \
 ADD ./kibana-init /etc/init.d/kibana
 RUN sed -i -e 's#^KIBANA_HOME=$#KIBANA_HOME='$KIBANA_HOME'#' /etc/init.d/kibana \
  && chmod +x /etc/init.d/kibana
+
+# Install Marvel console using default online instructions https://www.elastic.co/downloads/marvel
+RUN /opt/kibana/bin/kibana plugin --install elasticsearch/marvel/latest
+
 
 
 ###############################################################################
